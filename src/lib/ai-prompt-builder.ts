@@ -1,108 +1,75 @@
 /**
  * AI Prompt Builder — the core feature.
  *
- * Transforms a Client + BrandGuide record into a polished, ready-to-paste
- * system prompt that primes ChatGPT / Claude / any LLM with the full brand
- * context. The goal is that a content writer can paste the output once and
- * then simply ask "write a twitter post about X" and get on-brand output.
+ * Transforms a client profile + brand guide record into a polished,
+ * ready-to-paste system prompt that primes ChatGPT / Claude / any LLM
+ * with the full brand context. A content writer can paste the output
+ * once and then simply ask "write a twitter post about X" and get
+ * on-brand output from the first message.
  */
 
-import { parseJson } from "./utils";
-import { getPlatformLabel } from "./constants";
+import type { Tables } from "@/integrations/supabase/types";
+import { getPlatformLabel, getToneLabel } from "./brand-constants";
 
-type BrandGuideRecord = {
-  primaryColor: string | null;
-  secondaryColor: string | null;
-  accentColors: string | null;
-  fontArabic: string | null;
-  fontLatin: string | null;
-  toneOfVoice: string | null;
-  brandPersona: string | null;
-  preferredTerms: string | null;
-  forbiddenTerms: string | null;
-  languages: string | null;
-  targetAudience: string | null;
-  platforms: string | null;
-  mediaPolicy: string | null;
-  legalNotes: string | null;
-  hashtagStrategy: string | null;
-  sampleContent: string | null;
-  referenceLinks: string | null;
-} | null;
-
-type ClientRecord = {
-  nameAr: string;
-  nameEn: string | null;
-  industry: string | null;
-  description: string | null;
-  website: string | null;
-  brandGuide: BrandGuideRecord;
-};
+type ClientRow = Tables<"clients_brands">;
+type BrandGuideRow = Tables<"brand_guides">;
 
 export type PromptOptions = {
-  /** Optional content type to request (e.g., "post", "article"). */
   contentType?: string;
-  /** Optional target platform (e.g., "twitter"). */
   platform?: string;
-  /** Optional length hint in characters/words. */
   length?: string;
-  /** Free-form additional task description. */
   task?: string;
-  /** Language for the generated content. */
   language?: string;
 };
 
-const TONE_LABELS: Record<string, string> = {
-  formal: "رسمي — لغة محترفة وجدية",
-  professional: "احترافي — متوازن بين الجدية والمرونة",
-  friendly: "ودود — قريب من القارئ ومحفّز",
-  casual: "عفوي — لغة يومية وبسيطة",
-  authoritative: "موثوق — واثق ومتخصص",
-  inspirational: "ملهم — يحفّز الفعل والطموح",
-};
+function toArray(value: unknown): string[] {
+  if (!value) return [];
+  if (Array.isArray(value)) return value.map((v) => String(v));
+  return [];
+}
 
 export function buildSystemPrompt(
-  client: ClientRecord,
+  client: ClientRow,
+  brandGuide: BrandGuideRow | null,
   options: PromptOptions = {}
 ): string {
-  const g = client.brandGuide;
   const lines: string[] = [];
 
-  // --- Header ---
+  // Header
   lines.push("# سياق العلامة التجارية للمحتوى");
   lines.push("");
   lines.push(
-    `أنت الآن تكتب محتوى باسم **${client.nameAr}**${client.nameEn ? ` (${client.nameEn})` : ""}.`
+    `أنت الآن تكتب محتوى باسم **${client.name_ar}**${client.name_en ? ` (${client.name_en})` : ""}.`
   );
-  lines.push(
-    "التزم بكل التعليمات التالية بدقة — هذه المعلومات تمثل هوية الجهة الرسمية."
-  );
+  lines.push("التزم بكل التعليمات التالية بدقة — هذه المعلومات تمثل هوية الجهة الرسمية.");
   lines.push("");
 
-  // --- About the brand ---
+  // About the brand
   lines.push("## عن الجهة");
   if (client.industry) lines.push(`- **القطاع:** ${client.industry}`);
   if (client.description) lines.push(`- **الوصف:** ${client.description}`);
   if (client.website) lines.push(`- **الموقع:** ${client.website}`);
   lines.push("");
 
-  if (!g) {
-    lines.push("> ⚠️ لم يتم إعداد دليل الهوية بعد. الرجاء إضافة التفاصيل من صفحة الجهة.");
+  if (!brandGuide) {
+    lines.push(
+      "> ⚠️ لم يتم إعداد دليل الهوية بعد. الرجاء إضافة التفاصيل من صفحة الجهة."
+    );
     return lines.join("\n");
   }
 
-  // --- Voice & Persona ---
-  const tone = g.toneOfVoice ? TONE_LABELS[g.toneOfVoice] ?? g.toneOfVoice : null;
-  if (tone || g.brandPersona) {
+  // Voice & persona
+  const toneLabel = brandGuide.tone_of_voice ? getToneLabel(brandGuide.tone_of_voice) : null;
+  if (toneLabel || brandGuide.brand_persona) {
     lines.push("## نبرة الصوت والشخصية");
-    if (tone) lines.push(`- **النبرة:** ${tone}`);
-    if (g.brandPersona) lines.push(`- **الشخصية:** ${g.brandPersona}`);
+    if (toneLabel) lines.push(`- **النبرة:** ${toneLabel}`);
+    if (brandGuide.brand_persona) lines.push(`- **الشخصية:** ${brandGuide.brand_persona}`);
     lines.push("");
   }
 
-  // --- Terminology ---
-  const preferred = parseJson<string[]>(g.preferredTerms, []);
-  const forbidden = parseJson<string[]>(g.forbiddenTerms, []);
+  // Terminology
+  const preferred = toArray(brandGuide.preferred_terms);
+  const forbidden = toArray(brandGuide.forbidden_terms);
   if (preferred.length || forbidden.length) {
     lines.push("## المصطلحات");
     if (preferred.length) {
@@ -117,8 +84,8 @@ export function buildSystemPrompt(
     lines.push("");
   }
 
-  // --- Languages ---
-  const languages = parseJson<string[]>(g.languages, []);
+  // Languages
+  const languages = toArray(brandGuide.languages);
   if (languages.length) {
     const labeled = languages
       .map((l) => (l === "ar" ? "العربية" : l === "en" ? "الإنجليزية" : l))
@@ -127,52 +94,52 @@ export function buildSystemPrompt(
     lines.push("");
   }
 
-  // --- Audience ---
-  if (g.targetAudience) {
+  // Audience
+  if (brandGuide.target_audience) {
     lines.push("## الجمهور المستهدف");
-    lines.push(g.targetAudience);
+    lines.push(brandGuide.target_audience);
     lines.push("");
   }
 
-  // --- Platforms ---
-  const platforms = parseJson<string[]>(g.platforms, []);
+  // Platforms
+  const platforms = toArray(brandGuide.platforms);
   if (platforms.length) {
     const labeled = platforms.map(getPlatformLabel).join("، ");
     lines.push(`**المنصات النشطة:** ${labeled}`);
     lines.push("");
   }
 
-  // --- Media policy ---
-  if (g.mediaPolicy) {
+  // Media policy
+  if (brandGuide.media_policy) {
     lines.push("## السياسة الإعلامية (ملزمة)");
-    lines.push(g.mediaPolicy);
+    lines.push(brandGuide.media_policy);
     lines.push("");
   }
-  if (g.legalNotes) {
+  if (brandGuide.legal_notes) {
     lines.push("### ملاحظات قانونية");
-    lines.push(g.legalNotes);
+    lines.push(brandGuide.legal_notes);
     lines.push("");
   }
 
-  // --- Hashtag strategy ---
-  if (g.hashtagStrategy) {
+  // Hashtag strategy
+  if (brandGuide.hashtag_strategy) {
     lines.push("## استراتيجية الهاشتاق");
-    lines.push(g.hashtagStrategy);
+    lines.push(brandGuide.hashtag_strategy);
     lines.push("");
   }
 
-  // --- Visual identity (reference) ---
-  if (g.primaryColor || g.secondaryColor) {
+  // Visual identity (reference)
+  if (brandGuide.primary_color || brandGuide.secondary_color) {
     lines.push("## الهوية البصرية (للرجوع فقط عند الإشارة للتصميم)");
-    if (g.primaryColor) lines.push(`- اللون الأساسي: ${g.primaryColor}`);
-    if (g.secondaryColor) lines.push(`- اللون الثانوي: ${g.secondaryColor}`);
-    if (g.fontArabic) lines.push(`- الخط العربي: ${g.fontArabic}`);
-    if (g.fontLatin) lines.push(`- الخط اللاتيني: ${g.fontLatin}`);
+    if (brandGuide.primary_color) lines.push(`- اللون الأساسي: ${brandGuide.primary_color}`);
+    if (brandGuide.secondary_color) lines.push(`- اللون الثانوي: ${brandGuide.secondary_color}`);
+    if (brandGuide.font_arabic) lines.push(`- الخط العربي: ${brandGuide.font_arabic}`);
+    if (brandGuide.font_latin) lines.push(`- الخط اللاتيني: ${brandGuide.font_latin}`);
     lines.push("");
   }
 
-  // --- Sample content ---
-  const samples = parseJson<string[]>(g.sampleContent, []);
+  // Samples
+  const samples = toArray(brandGuide.sample_content);
   if (samples.length) {
     lines.push("## أمثلة محتوى معتمدة سابقاً");
     lines.push("استلهم منها الأسلوب والنبرة دون النسخ الحرفي:");
@@ -180,15 +147,15 @@ export function buildSystemPrompt(
     lines.push("");
   }
 
-  // --- Reference links ---
-  const refs = parseJson<string[]>(g.referenceLinks, []);
+  // References
+  const refs = toArray(brandGuide.reference_links);
   if (refs.length) {
     lines.push("## مراجع");
     refs.forEach((r) => lines.push(`- ${r}`));
     lines.push("");
   }
 
-  // --- The task ---
+  // Task
   lines.push("---");
   lines.push("");
   lines.push("## المهمة الآن");
@@ -199,7 +166,9 @@ export function buildSystemPrompt(
 
   if (options.platform) taskParts.push(`لمنصة **${getPlatformLabel(options.platform)}**`);
   if (options.language)
-    taskParts.push(`باللغة **${options.language === "ar" ? "العربية" : options.language}**`);
+    taskParts.push(
+      `باللغة **${options.language === "ar" ? "العربية" : options.language}**`
+    );
   if (options.length) taskParts.push(`بطول تقريبي **${options.length}**`);
 
   lines.push(taskParts.join(" ") + ".");
