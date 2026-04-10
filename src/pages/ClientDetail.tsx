@@ -7,7 +7,7 @@ import type { Tables } from "@/integrations/supabase/types";
 import { CLIENT_STATUSES } from "@/lib/brand-constants";
 import { cn } from "@/lib/utils";
 
-type Client = Tables<"clients_brands"> & {
+type Client = Tables<"clients"> & {
   brand_guides: Tables<"brand_guides"> | null;
 };
 
@@ -22,7 +22,7 @@ export default function ClientDetail() {
     let cancelled = false;
     (async () => {
       const { data, error } = await supabase
-        .from("clients_brands")
+        .from("clients")
         .select("*, brand_guides(*)")
         .eq("id", id)
         .maybeSingle();

@@ -11,7 +11,7 @@
 import type { Tables } from "@/integrations/supabase/types";
 import { getPlatformLabel, getToneLabel } from "./brand-constants";
 
-type ClientRow = Tables<"clients_brands">;
+type ClientRow = Tables<"clients">;
 type BrandGuideRow = Tables<"brand_guides">;
 
 export type PromptOptions = {

@@ -12,7 +12,7 @@ export type Database = {
   }
   public: {
     Tables: {
-      clients_brands: {
+      clients: {
         Row: {
           id: string
           name_ar: string
@@ -141,12 +141,12 @@ export type Database = {
             foreignKeyName: "brand_guides_client_id_fkey"
             columns: ["client_id"]
             isOneToOne: true
-            referencedRelation: "clients_brands"
+            referencedRelation: "clients"
             referencedColumns: ["id"]
           }
         ]
       }
-      content_projects: {
+      projects: {
         Row: {
           id: string
           client_id: string
@@ -182,15 +182,15 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "content_projects_client_id_fkey"
+            foreignKeyName: "projects_client_id_fkey"
             columns: ["client_id"]
             isOneToOne: false
-            referencedRelation: "clients_brands"
+            referencedRelation: "clients"
             referencedColumns: ["id"]
           }
         ]
       }
-      content_tasks: {
+      tasks: {
         Row: {
           id: string
           project_id: string
@@ -205,7 +205,7 @@ export type Database = {
           content_type: string | null
           content_body: string | null
           ai_generated: boolean
-          sort_order: number
+          order: number
           created_at: string
           updated_at: string
         }
@@ -223,7 +223,7 @@ export type Database = {
           content_type?: string | null
           content_body?: string | null
           ai_generated?: boolean
-          sort_order?: number
+          order?: number
           created_at?: string
           updated_at?: string
         }
@@ -241,16 +241,16 @@ export type Database = {
           content_type?: string | null
           content_body?: string | null
           ai_generated?: boolean
-          sort_order?: number
+          order?: number
           created_at?: string
           updated_at?: string
         }
         Relationships: [
           {
-            foreignKeyName: "content_tasks_project_id_fkey"
+            foreignKeyName: "tasks_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
-            referencedRelation: "content_projects"
+            referencedRelation: "projects"
             referencedColumns: ["id"]
           }
         ]

@@ -44,7 +44,7 @@ export default function ClientNew() {
     }
 
     const { data, error } = await supabase
-      .from("clients_brands")
+      .from("clients")
       .insert(payload)
       .select()
       .single();

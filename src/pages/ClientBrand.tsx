@@ -33,7 +33,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
 type ContextValue = {
-  client: Tables<"clients_brands"> & {
+  client: Tables<"clients"> & {
     brand_guides: Tables<"brand_guides"> | null;
   };
 };

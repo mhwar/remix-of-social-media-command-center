@@ -5,7 +5,7 @@ import { Globe, Mail, Phone, Calendar, Palette, Sparkles } from "lucide-react";
 import type { Tables } from "@/integrations/supabase/types";
 
 type ContextValue = {
-  client: Tables<"clients_brands"> & {
+  client: Tables<"clients"> & {
     brand_guides: Tables<"brand_guides"> | null;
   };
 };

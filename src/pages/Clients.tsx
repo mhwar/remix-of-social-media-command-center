@@ -9,7 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 import { CLIENT_STATUSES } from "@/lib/brand-constants";
 
-type ClientWithBrand = Tables<"clients_brands"> & {
+type ClientWithBrand = Tables<"clients"> & {
   brand_guides: Tables<"brand_guides"> | null;
   project_count: number;
 };
@@ -24,14 +24,14 @@ const Clients = () => {
     let cancelled = false;
     (async () => {
       const { data, error } = await supabase
-        .from("clients_brands")
-        .select("*, brand_guides(primary_color, secondary_color), content_projects(id)")
+        .from("clients")
+        .select("*, brand_guides(primary_color, secondary_color), projects(id)")
         .order("updated_at", { ascending: false });
 
       if (cancelled) return;
       if (error) {
         setError(
-          "لم يتم العثور على جدول clients_brands. تأكد من تشغيل migration الخاص بـ supabase/migrations/."
+          "لم يتم العثور على جدول clients. تأكد من تشغيل migration الخاص بـ supabase/migrations/."
         );
         setLoading(false);
         return;
@@ -42,9 +42,9 @@ const Clients = () => {
         const brand = Array.isArray(brandRaw)
           ? (brandRaw[0] as Tables<"brand_guides"> | undefined) ?? null
           : (brandRaw as Tables<"brand_guides"> | null);
-        const projects = (row as unknown as { content_projects: unknown[] }).content_projects;
+        const projects = (row as unknown as { projects: unknown[] }).projects;
         return {
-          ...(row as Tables<"clients_brands">),
+          ...(row as Tables<"clients">),
           brand_guides: brand,
           project_count: Array.isArray(projects) ? projects.length : 0,
         };

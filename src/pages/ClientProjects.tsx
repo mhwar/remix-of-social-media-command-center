@@ -20,12 +20,12 @@ import type { Tables } from "@/integrations/supabase/types";
 import { toast } from "sonner";
 
 type ContextValue = {
-  client: Tables<"clients_brands"> & {
+  client: Tables<"clients"> & {
     brand_guides: Tables<"brand_guides"> | null;
   };
 };
 
-type ProjectWithCount = Tables<"content_projects"> & { task_count: number };
+type ProjectWithCount = Tables<"projects"> & { task_count: number };
 
 export default function ClientProjects() {
   const { id } = useParams<{ id: string }>();
@@ -38,15 +38,15 @@ export default function ClientProjects() {
   async function loadProjects() {
     if (!id) return;
     const { data } = await supabase
-      .from("content_projects")
-      .select("*, content_tasks(id)")
+      .from("projects")
+      .select("*, tasks(id)")
       .eq("client_id", id)
       .order("updated_at", { ascending: false });
 
     const withCounts: ProjectWithCount[] = (data ?? []).map((p) => {
-      const tasks = (p as unknown as { content_tasks: unknown[] }).content_tasks;
+      const tasks = (p as unknown as { tasks: unknown[] }).tasks;
       return {
-        ...(p as Tables<"content_projects">),
+        ...(p as Tables<"projects">),
         task_count: Array.isArray(tasks) ? tasks.length : 0,
       };
     });
@@ -64,7 +64,7 @@ export default function ClientProjects() {
     if (!id) return;
     setSaving(true);
     const form = new FormData(e.currentTarget);
-    const { error } = await supabase.from("content_projects").insert({
+    const { error } = await supabase.from("projects").insert({
       client_id: id,
       title: String(form.get("title") ?? ""),
       description: String(form.get("description") ?? "") || null,

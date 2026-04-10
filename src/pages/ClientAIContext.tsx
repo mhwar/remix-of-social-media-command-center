@@ -26,7 +26,7 @@ import { PLATFORMS, CONTENT_TYPES } from "@/lib/brand-constants";
 import { toast } from "sonner";
 
 type ContextValue = {
-  client: Tables<"clients_brands"> & {
+  client: Tables<"clients"> & {
     brand_guides: Tables<"brand_guides"> | null;
   };
 };
