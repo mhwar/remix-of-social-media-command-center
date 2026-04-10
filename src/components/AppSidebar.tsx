@@ -4,6 +4,7 @@ import {
   ClipboardList,
   CalendarDays,
   UserCog,
+  Sparkles,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
@@ -21,7 +22,7 @@ import {
 
 const navItems = [
   { title: "لوحة التحكم", url: "/", icon: LayoutDashboard },
-  { title: "العملاء", url: "/clients", icon: Users },
+  { title: "الجهات والعملاء", url: "/clients", icon: Users },
   { title: "المهام", url: "/tasks", icon: ClipboardList },
   { title: "تقويم المحتوى", url: "/calendar", icon: CalendarDays },
   { title: "الفريق", url: "/team", icon: UserCog },
